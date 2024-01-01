@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author Marco OsaOmagbon
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -94,6 +94,27 @@ public class Model extends Observable {
         setChanged();
     }
 
+    /**
+     * Returns the max row the current column can go to
+     */
+    private int getMaxTopRow(int curCol, int curRow) {
+        int maxRow = curRow;
+        Tile current = board.tile(curCol, curRow);
+        while (maxRow < board.size() - 1) {
+            Tile t = board.tile(curCol, maxRow + 1);
+            if (t == null) {
+                maxRow++;
+                continue;
+            }
+            if (t.value() == current.value()) {
+                return maxRow + 1;
+            } else {
+                return maxRow;
+            }
+        }
+        return maxRow;
+    }
+
     /** Tilt the board toward SIDE. Return true iff this changes the board.
      *
      * 1. If two Tile objects are adjacent in the direction of motion and have
@@ -109,11 +130,105 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
+        // keeps track of whether a tile at certain row, col has merged before
+        boolean[][] merged = new boolean[board.size()][board.size()];
+        switch (side) {
+            case NORTH: 
+                for (int c = 0; c < board.size(); c++) {
+                    for (int r = board.size() - 1; r >= 0; r--) {
+                        Tile t = board.tile(c, r);
+                        if (t != null) {
+                            int maxRow = getMaxTopRow(c, r);
+                            // if has already merged before
+                            if (merged[maxRow][c]) {
+                                board.move(c, maxRow - 1, t);
+                            } else {
+                                // else check if there's a merge
+                                if (board.move(c, maxRow, t)) {
+                                    // update the score and the merged array
+                                    score += t.value() * 2;
+                                    merged[maxRow][c] = true;
+                                }
+                            }
+                            if (maxRow != r) changed = true;
+                        }
+                    }
+                }
+                break;
+            case SOUTH:
+                board.setViewingPerspective(Side.SOUTH);
+                for (int c = 0; c < board.size(); c++) {
+                    for (int r = board.size() - 1; r >= 0; r--) {
+                        Tile t = board.tile(c, r);
+                        if (t != null) {
+                            int maxRow = getMaxTopRow(c, r);
+                            // if has already merged before
+                            if (merged[maxRow][c]) {
+                                board.move(c, maxRow - 1, t);
+                            } else {
+                                // else check if there's a merge
+                                if (board.move(c, maxRow, t)) {
+                                    // update the score and the merged array
+                                    score += t.value() * 2;
+                                    merged[maxRow][c] = true;
+                                }
+                            }
+                            if (maxRow != r) changed = true;
+                        }
+                    }
+                }
+                break;
+            case WEST:
+                board.setViewingPerspective(Side.WEST);
+                for (int c = 0; c < board.size(); c++) {
+                    for (int r = board.size() - 1; r >= 0; r--) {
+                        Tile t = board.tile(c, r);
+                        if (t != null) {
+                            int maxRow = getMaxTopRow(c, r);
+                            // if has already merged before
+                            if (merged[maxRow][c]) {
+                                board.move(c, maxRow - 1, t);
+                            } else {
+                                // else check if there's a merge
+                                if (board.move(c, maxRow, t)) {
+                                    // update the score and the merged array
+                                    score += t.value() * 2;
+                                    merged[maxRow][c] = true;
+                                }
+                            }
+                            if (maxRow != r) changed = true;
+                        }
+                    }
+                }
+                break;
+            case EAST:
+                board.setViewingPerspective(Side.EAST);
+                for (int c = 0; c < board.size(); c++) {
+                    for (int r = board.size() - 1; r >= 0; r--) {
+                        Tile t = board.tile(c, r);
+                        if (t != null) {
+                            int maxRow = getMaxTopRow(c, r);
+                            // if has already merged before
+                            if (merged[maxRow][c]) {
+                                board.move(c, maxRow - 1, t);
+                            } else {
+                                // else check if there's a merge
+                                if (board.move(c, maxRow, t)) {
+                                    // update the score and the merged array
+                                    score += t.value() * 2;
+                                    merged[maxRow][c] = true;
+                                }
+                            }
+                            if (maxRow != r) changed = true;
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        board.setViewingPerspective(Side.NORTH);
+        side.col(score, maxScore, MAX_PIECE);
         checkGameOver();
         if (changed) {
             setChanged();
@@ -137,7 +252,9 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+        for (Tile t: b) {
+            if (t == null) return true;
+        }
         return false;
     }
 
@@ -147,8 +264,41 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        for (Tile t: b) {
+            if (t == null) continue;
+            if (t.value() == MAX_PIECE) return true;
+        }
         return false;
+    }
+
+
+    /**
+     * Returns true if there are two adjacent tiles with the same value
+     */
+    private static boolean twoAdjacentSameTilesExist(Board b) {
+        int size = b.size();
+        for (Tile t : b) {
+            int col = t.col();
+            int row = t.row();
+            // Check top neighbor
+            if (row - 1 >= 0 && b.tile(col, row - 1) != null && b.tile(col, row - 1).value() == t.value()) {
+                return true;
+            }
+            // Check bottom neighbor
+            if (row + 1 < size && b.tile(col, row + 1) != null && b.tile(col, row + 1).value() == t.value()) {
+                return true;
+            }
+            // Check left neighbor
+            if (col - 1 >= 0 && b.tile(col - 1, row) != null && b.tile(col - 1, row).value() == t.value()) {
+                return true;
+            }
+            // Check right neighbor
+            if (col + 1 < size && b.tile(col + 1, row) != null && b.tile(col + 1, row).value() == t.value()) {
+                return true;
+            }
+        }
+        return false;
+
     }
 
     /**
@@ -157,9 +307,9 @@ public class Model extends Observable {
      * 1. There is at least one empty space on the board.
      * 2. There are two adjacent tiles with the same value.
      */
+
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
-        return false;
+        return emptySpaceExists(b) || twoAdjacentSameTilesExist(b);
     }
 
 
