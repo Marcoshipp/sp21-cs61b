@@ -115,6 +115,31 @@ public class Model extends Observable {
         return maxRow;
     }
 
+    private boolean tiltToNorth(boolean[][] merged) {
+        boolean changed = false;
+        for (int c = 0; c < board.size(); c++) {
+            for (int r = board.size() - 1; r >= 0; r--) {
+                Tile t = board.tile(c, r);
+                if (t != null) {
+                    int maxRow = getMaxTopRow(c, r);
+                    // if it has already merged before
+                    if (merged[maxRow][c]) {
+                        board.move(c, maxRow - 1, t);
+                    } else {
+                        // else check if there's a merge
+                        if (board.move(c, maxRow, t)) {
+                            // update the score and the merged array
+                            score += t.value() * 2;
+                            merged[maxRow][c] = true;
+                        }
+                    }
+                    if (maxRow != r) changed = true;
+                }
+            }
+        }
+        return changed;
+    }
+
     /** Tilt the board toward SIDE. Return true iff this changes the board.
      *
      * 1. If two Tile objects are adjacent in the direction of motion and have
@@ -133,96 +158,20 @@ public class Model extends Observable {
         // keeps track of whether a tile at certain row, col has merged before
         boolean[][] merged = new boolean[board.size()][board.size()];
         switch (side) {
-            case NORTH: 
-                for (int c = 0; c < board.size(); c++) {
-                    for (int r = board.size() - 1; r >= 0; r--) {
-                        Tile t = board.tile(c, r);
-                        if (t != null) {
-                            int maxRow = getMaxTopRow(c, r);
-                            // if has already merged before
-                            if (merged[maxRow][c]) {
-                                board.move(c, maxRow - 1, t);
-                            } else {
-                                // else check if there's a merge
-                                if (board.move(c, maxRow, t)) {
-                                    // update the score and the merged array
-                                    score += t.value() * 2;
-                                    merged[maxRow][c] = true;
-                                }
-                            }
-                            if (maxRow != r) changed = true;
-                        }
-                    }
-                }
+            case NORTH:
+                changed = tiltToNorth(merged);
                 break;
             case SOUTH:
                 board.setViewingPerspective(Side.SOUTH);
-                for (int c = 0; c < board.size(); c++) {
-                    for (int r = board.size() - 1; r >= 0; r--) {
-                        Tile t = board.tile(c, r);
-                        if (t != null) {
-                            int maxRow = getMaxTopRow(c, r);
-                            // if has already merged before
-                            if (merged[maxRow][c]) {
-                                board.move(c, maxRow - 1, t);
-                            } else {
-                                // else check if there's a merge
-                                if (board.move(c, maxRow, t)) {
-                                    // update the score and the merged array
-                                    score += t.value() * 2;
-                                    merged[maxRow][c] = true;
-                                }
-                            }
-                            if (maxRow != r) changed = true;
-                        }
-                    }
-                }
+                changed = tiltToNorth(merged);
                 break;
             case WEST:
                 board.setViewingPerspective(Side.WEST);
-                for (int c = 0; c < board.size(); c++) {
-                    for (int r = board.size() - 1; r >= 0; r--) {
-                        Tile t = board.tile(c, r);
-                        if (t != null) {
-                            int maxRow = getMaxTopRow(c, r);
-                            // if has already merged before
-                            if (merged[maxRow][c]) {
-                                board.move(c, maxRow - 1, t);
-                            } else {
-                                // else check if there's a merge
-                                if (board.move(c, maxRow, t)) {
-                                    // update the score and the merged array
-                                    score += t.value() * 2;
-                                    merged[maxRow][c] = true;
-                                }
-                            }
-                            if (maxRow != r) changed = true;
-                        }
-                    }
-                }
+                changed = tiltToNorth(merged);
                 break;
             case EAST:
                 board.setViewingPerspective(Side.EAST);
-                for (int c = 0; c < board.size(); c++) {
-                    for (int r = board.size() - 1; r >= 0; r--) {
-                        Tile t = board.tile(c, r);
-                        if (t != null) {
-                            int maxRow = getMaxTopRow(c, r);
-                            // if has already merged before
-                            if (merged[maxRow][c]) {
-                                board.move(c, maxRow - 1, t);
-                            } else {
-                                // else check if there's a merge
-                                if (board.move(c, maxRow, t)) {
-                                    // update the score and the merged array
-                                    score += t.value() * 2;
-                                    merged[maxRow][c] = true;
-                                }
-                            }
-                            if (maxRow != r) changed = true;
-                        }
-                    }
-                }
+                changed = tiltToNorth(merged);
                 break;
             default:
                 break;
