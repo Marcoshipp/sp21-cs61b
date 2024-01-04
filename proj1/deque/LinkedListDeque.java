@@ -90,6 +90,7 @@ public class LinkedListDeque<T> implements Deque<T> {
         Node ptr = sentinel.next;
         while (i > 0) {
             ptr = ptr.next;
+            i--;
         }
         return ptr.item;
     }
