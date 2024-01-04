@@ -95,7 +95,6 @@ public class LinkedListDeque<T> implements Deque<T> {
         return ptr.item;
     }
 
-
     public T getRecursive(int i) {
         if (i >= size || i < 0) {
             return null;

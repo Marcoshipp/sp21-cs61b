@@ -112,7 +112,7 @@ public class DequeTest {
     @Test
     public void testThreeAddThreeRemove() {
         ArrayDeque<Integer> L1 = new ArrayDeque<>();
-        ArrayDeque<Integer> L2 = new ArrayDeque<>();
+        LinkedListDeque<Integer> L2 = new LinkedListDeque<>();
         boolean passed = true;
         for (int i = 0; i < 3; i++) {
             L1.addLast(i);
