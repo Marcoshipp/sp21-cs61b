@@ -119,12 +119,12 @@ public class LinkedListDequeTest {
     @Test
     /* Add large number of elements to deque; check if order is correct. */
     public void getTest() {
-
         LinkedListDeque<Integer> lld1 = new LinkedListDeque<>();
+        ArrayDeque<Integer> ad1 = new ArrayDeque<>();
         for (int i = 0; i < 10; i++) {
-            lld1.addLast(i);
+            lld1.addFirst(i);
+            ad1.addFirst(i);
         }
-        int actual = lld1.getRecursive(5);
-        assertEquals(5, actual);
+        assertTrue(lld1.equals(ad1));
     }
 }
