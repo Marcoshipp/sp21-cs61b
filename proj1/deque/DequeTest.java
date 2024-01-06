@@ -182,4 +182,24 @@ public class DequeTest {
         }
     }
 
+    @Test
+    public void equalTest() {
+        ArrayDeque<Integer> ad = new ArrayDeque<>();
+        LinkedListDeque<Integer> ld = new LinkedListDeque<>();
+        ArrayDeque<String> spyAd = new ArrayDeque<>();
+        LinkedListDeque<String> spyLd = new LinkedListDeque<>();
+        spyAd.addLast("61b");
+        spyLd.addLast("rules");
+        for (int i = 0; i < 50; i++) {
+            ad.addLast(i);
+            ld.addLast(i);
+        }
+        assertTrue(ad.equals(ld));
+        assertTrue(ld.equals(ad));
+        assertFalse(ad.equals(spyAd));
+        assertFalse(ad.equals(spyLd));
+        assertFalse(ld.equals(spyAd));
+        assertFalse(spyLd.equals(ad));
+    }
+
 }

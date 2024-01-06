@@ -11,7 +11,9 @@ public interface Deque<T> {
     public int size();
 
     /** Returns true if deque is empty, false otherwise. */
-    public boolean isEmpty();
+    default public boolean isEmpty() {
+        return size() == 0;
+    }
 
     /**
      Prints the items in the deque from first to last,

@@ -1,6 +1,8 @@
 package deque;
 
-public class LinkedListDeque<T> implements Deque<T> {
+import java.util.Iterator;
+
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     private final class Node {
         private Node prev;
         private T item;
@@ -10,6 +12,29 @@ public class LinkedListDeque<T> implements Deque<T> {
             this.item = item;
             this.prev = prev;
             this.next = next;
+        }
+    }
+
+    private class LinkedListDequeIterator implements Iterator<T> {
+        Node iterS;
+        int counter;
+        int size;
+        public LinkedListDequeIterator(Node s, int sze) {
+            iterS = s.next;
+            counter = 0;
+            size = sze;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return counter < size;
+        }
+        @Override
+        public T next() {
+            T item = iterS.item;
+            iterS = iterS.next;
+            counter++;
+            return item;
         }
     }
 
@@ -28,11 +53,6 @@ public class LinkedListDeque<T> implements Deque<T> {
             return null;
         }
         return sentinel.prev.item;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return size == 0;
     }
 
     @Override
@@ -80,6 +100,7 @@ public class LinkedListDeque<T> implements Deque<T> {
         return curLast.item;
     }
 
+    @Override
     public T get(int i) {
         if (i >= size || i < 0) {
             return null;
@@ -124,4 +145,52 @@ public class LinkedListDeque<T> implements Deque<T> {
         System.out.println();
     }
 
+    @Override
+    public Iterator<T> iterator() {
+        return new LinkedListDequeIterator(sentinel, size);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        if (o instanceof LinkedListDeque) {
+            LinkedListDeque<T> other = (LinkedListDeque<T>) o;
+            // if not the same size, return
+            if (size() != other.size()) {
+                return false;
+            }
+            Iterator<T> thisIterator = iterator();
+            Iterator<T> otherIterator = other.iterator();
+
+            while (thisIterator.hasNext()) {
+                T thisElement = thisIterator.next();
+                T otherElement = otherIterator.next();
+                if (!thisElement.equals(otherElement)) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (o instanceof ArrayDeque) {
+            ArrayDeque<T> other = (ArrayDeque<T>) o;
+            // if not the same size, return
+            if (size() != other.size()) {
+                return false;
+            }
+            Iterator<T> thisIterator = iterator();
+            Iterator<T> otherIterator = other.iterator();
+
+            while (thisIterator.hasNext()) {
+                T thisElement = thisIterator.next();
+                T otherElement = otherIterator.next();
+                if (!thisElement.equals(otherElement)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+
+    }
 }
