@@ -19,7 +19,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         Node iterS;
         int counter;
         int size;
-        public LinkedListDequeIterator(Node s, int sze) {
+        LinkedListDequeIterator(Node s, int sze) {
             iterS = s.next;
             counter = 0;
             size = sze;

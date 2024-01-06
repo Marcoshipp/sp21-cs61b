@@ -18,7 +18,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         int index;
         int counter;
         T[] dequeElements;
-        public ArrayDequeIterator(T[] i, int f, int s) {
+        ArrayDequeIterator(T[] i, int f, int s) {
             dequeElements = i;
             size = s;
             index = f;
