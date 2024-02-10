@@ -1,26 +1,72 @@
 package gitlet;
 
-// TODO: any imports you need here
 
-import java.util.Date; // TODO: You'll likely use this in this class
+import java.io.File;
+import java.io.Serializable;
+import java.util.*;
+
+import static gitlet.Repository.*;
+import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
- *
- *  @author TODO
+ *  @author Marco
  */
-public class Commit {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
-     */
-
+public class Commit implements Serializable {
     /** The message of this Commit. */
-    private String message;
+    String message;
+    /** The timestamp of this Commit. */
+    Date timestamp;
+    /** The files I tracked in this Commit. */
+    Map<String, String> fileToBlobs;
+    /** A mapping from blobs to their filenames */
+    Map<String, String> blobToFiles;
+    /** The id of this Commit. */
+    String id;
+    /** The parent of the Commit */
+    Commit parent;
 
-    /* TODO: fill in the rest of this class. */
+    // initial commit
+    public Commit() {
+        this.timestamp = new Date(0); // the epoch date
+        this.id = Utils.sha1(this.timestamp.toString());
+        this.parent = null;
+        this.message = "initial commit";
+        this.fileToBlobs = new HashMap<>();
+        this.blobToFiles = new HashMap<>();
+    }
+
+    public Commit(
+            String message,
+            Set<String> toAdd,
+            Set<String> toDelete,
+            Commit parent
+    ) {
+        this.timestamp = new Date();
+        this.id = Utils.sha1(this.timestamp.toString());
+        this.message = message;
+        this.fileToBlobs = new HashMap<>();
+        this.blobToFiles = new HashMap<>();
+        this.parent = parent;
+        for (String s: parent.fileToBlobs.keySet()) {
+            fileToBlobs.put(s, parent.fileToBlobs.get(s));
+        }
+        for (String s: parent.blobToFiles.keySet()) {
+            blobToFiles.put(s, parent.blobToFiles.get(s));
+        }
+        // overwrites inheritance from parent pointer
+        for (String filename: toAdd) {
+            File f = join(STAGING_DIR, filename);
+            String fileContent = readContentsAsString(f);
+            String sha1Hash = sha1(filename, fileContent);
+            File blob = join(BLOBS_DIR, sha1Hash);
+            writeContents(blob, fileContent);
+            this.fileToBlobs.put(filename, sha1Hash);
+            this.blobToFiles.put(sha1Hash, filename);
+        }
+        for (String filename: toDelete) {
+            String blobName = this.fileToBlobs.get(filename);
+            this.fileToBlobs.remove(filename);
+            this.blobToFiles.remove(blobName);
+        }
+    }
 }
