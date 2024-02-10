@@ -310,20 +310,19 @@ public class Repository {
         String commitID = readContentsAsString(newBranch);
         Commit c = readObject(join(COMMITS_DIR, commitID), Commit.class);
         // check if any file is staged
-        for (String blobName: c.blobToFiles.keySet()) {
-            String filename = c.blobToFiles.get(blobName);
+        for (String filename: c.fileToBlobs.keySet()) {
             if (isStaged(filename)) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 return;
             }
         }
-        for (String fileName: getCurHead().fileToBlobs.keySet()) {
-            if (!c.fileToBlobs.containsKey(fileName)) {
-                join(CWD, fileName).delete();
-            }
+        for (String filename: c.fileToBlobs.keySet()) {
+            checkout(filename, commitID);
         }
-        for (String blobName: c.blobToFiles.keySet()) {
-            checkout(c.blobToFiles.get(blobName), commitID);
+        for (String filename: getCurHead().fileToBlobs.keySet()) {
+            if (!c.fileToBlobs.containsKey(filename)) {
+                join(CWD, filename).delete();
+            }
         }
         // make head point to the given branch
         writeContents(HEAD, branchName);
