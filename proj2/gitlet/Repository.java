@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Formatter;
 
 import static gitlet.Utils.*;
+import static gitlet.Utils.readContentsAsString;
 
 /** Represents a gitlet repository.
  *  @author Marco
@@ -59,10 +60,6 @@ public class Repository {
         writeObject(DEL_TRACKER_DIR, new HashSet<>());
     }
 
-    private static boolean isInitialized() {
-        return GITLET_DIR.exists();
-    }
-
     private static void addToAddTracker(String filename) {
         HashSet<String> addTracker = readObject(ADD_TRACKER_DIR, HashSet.class);
         addTracker.add(filename);
@@ -99,10 +96,6 @@ public class Repository {
     }
 
     public static void add(String filename) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         File f = join(CWD, filename);
         if (!f.exists()) {
             System.out.println("File does not exist.");
@@ -128,10 +121,6 @@ public class Repository {
     }
 
     public static void commit(String message) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         Commit curHead = getCurHead();
         HashSet<String> addTrackerSet = readObject(ADD_TRACKER_DIR, HashSet.class);
         HashSet<String> delTrackerSet = readObject(DEL_TRACKER_DIR, HashSet.class);
@@ -164,10 +153,6 @@ public class Repository {
     }
 
     public static void rm(String filename) {
-        if (!GITLET_DIR.exists()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         File f = join(CWD, filename);
         if (isStaged(filename)) {
             HashSet<String> addTracker = readObject(ADD_TRACKER_DIR, HashSet.class);
@@ -183,10 +168,6 @@ public class Repository {
     }
 
     public static void log() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         // TODO: Handles merge
         Commit c = getCurHead();
         for (; c != null; c = c.parent) {
@@ -201,10 +182,6 @@ public class Repository {
     }
 
     public static void globalLog() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         for (String filename: plainFilenamesIn(COMMITS_DIR)) {
             if (filename.equals("HEAD")) {
                 continue;
@@ -221,10 +198,6 @@ public class Repository {
     }
 
     public static void find(String message) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         boolean found = false;
         for (String filename: plainFilenamesIn(COMMITS_DIR)) {
             Commit c = readObject(join(COMMITS_DIR, filename), Commit.class);
@@ -239,10 +212,6 @@ public class Repository {
     }
 
     public static void status() {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         System.out.println("=== Branches ===");
         for (String branchName: plainFilenamesIn(BRANCH_DIR)) {
             if (branchName.equals(readContentsAsString(HEAD))) {
@@ -270,10 +239,6 @@ public class Repository {
     }
 
     public static void branch(String branchName) {
-        if (!isInitialized()) {
-            System.out.println("Not in an initialized Gitlet directory.");
-            return;
-        }
         File newBranch = join(BRANCH_DIR, branchName);
         if (newBranch.exists()) {
             System.out.println("A branch with that name already exists.");
@@ -297,17 +262,7 @@ public class Repository {
         writeContents(join(CWD, filename), readContentsAsString(join(BLOBS_DIR, blobName)));
     }
 
-    public static void checkout(String branchName) {
-        File newBranch = join(BRANCH_DIR, branchName);
-        if (!newBranch.exists()) {
-            System.out.println("No such branch exists.");
-            return;
-        }
-        if (branchName.equals(readContentsAsString(HEAD))) {
-            System.out.println("No need to checkout the current branch.");
-            return;
-        }
-        String commitID = readContentsAsString(newBranch);
+    private static void checkoutHelper(String commitID) {
         Commit c = readObject(join(COMMITS_DIR, commitID), Commit.class);
         // check if any file is staged
         for (String filename: c.fileToBlobs.keySet()) {
@@ -324,8 +279,44 @@ public class Repository {
                 join(CWD, filename).delete();
             }
         }
+    }
+
+    public static void checkout(String branchName) {
+        File newBranch = join(BRANCH_DIR, branchName);
+        if (!newBranch.exists()) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        if (branchName.equals(readContentsAsString(HEAD))) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+        String commitID = readContentsAsString(newBranch);
+        checkoutHelper(commitID);
         // make head point to the given branch
         writeContents(HEAD, branchName);
         clearStaged();
+    }
+
+    public static void rmBranch(String branchName) {
+        File branchFile = join(BRANCH_DIR, branchName);
+        if (!branchFile.exists()) {
+            System.out.println("A branch with that name does not exist.");
+            return;
+        }
+        if (branchName.equals(readContentsAsString(HEAD))) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        branchFile.delete();
+    }
+
+    public static void reset(String commitID) {
+        File commit = join(COMMITS_DIR, commitID);
+        if (!commit.exists()) {
+            System.out.println("No commit with that id exists.");
+        }
+        checkoutHelper(commitID);
+        writeContents(join(COMMITS_DIR, readContentsAsString(HEAD)), commitID);
     }
 }

@@ -1,5 +1,6 @@
 package gitlet;
 
+import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Repository.getCurHead;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
@@ -13,6 +14,10 @@ public class Main {
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Please enter a command.");
+            return;
+        }
+        if (!GITLET_DIR.exists() && !args[0].equals("init")) {
+            System.out.println("Not in an initialized Gitlet directory.");
             return;
         }
         String command = args[0];
@@ -56,6 +61,12 @@ public class Main {
                 } else if (args.length == 4) {
                     Repository.checkout(args[3], args[1]);
                 }
+                break;
+            case "rm-branch":
+                Repository.rmBranch(args[1]);
+                break;
+            case "reset":
+                Repository.reset(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");
