@@ -49,7 +49,12 @@ public class Commit implements Serializable {
     ) {
         this.merged = (parent2 != null);
         this.timestamp = new Date();
-        this.id = Utils.sha1(this.timestamp.toString(), message, toAdd.toString(), toDelete.toString());
+        this.id = Utils.sha1(
+                this.timestamp.toString(),
+                message,
+                toAdd.toString(),
+                toDelete.toString()
+        );
         this.message = message;
         this.fileToBlobs = new HashMap<>();
         this.blobToFiles = new HashMap<>();
