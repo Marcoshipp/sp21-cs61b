@@ -247,6 +247,7 @@ public class Repository {
             if (!isStaged(filename) && !removed.contains(filename)) {
                 if (!f.exists()) {
                     System.out.println(filename + " (deleted)");
+                    continue;
                 } else if (inCommit(head, filename) && !sameInHeadCommit(f)) {
                     System.out.println(filename + " (modified)");
                 }
