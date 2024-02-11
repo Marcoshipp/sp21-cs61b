@@ -368,11 +368,19 @@ public class Repository {
     }
 
     private static void handleConflict(String filename, Commit current, Commit given) {
+        String headContent = "";
+        if (current.fileToBlobs.containsKey(filename)) {
+            headContent = readContentsAsString(join(BLOBS_DIR, current.fileToBlobs.get(filename)));
+        }
+        String givenContent = "";
+        if (given.fileToBlobs.containsKey(filename)) {
+            givenContent = readContentsAsString(join(BLOBS_DIR, given.fileToBlobs.get(filename)));
+        }
         StringBuilder content = new StringBuilder();
         content.append("<<<<<<< HEAD\n");
-        content.append(readContentsAsString(join(BLOBS_DIR, current.fileToBlobs.get(filename))));
+        content.append(headContent);
         content.append("=======\n");
-        content.append(readContentsAsString(join(BLOBS_DIR, given.fileToBlobs.get(filename))));
+        content.append(givenContent);
         content.append(">>>>>>>\n");
         File f = join(CWD, filename);
         writeContents(f, content.toString());
