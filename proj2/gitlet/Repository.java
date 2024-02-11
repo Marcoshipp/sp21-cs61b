@@ -3,9 +3,6 @@ package gitlet;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Formatter;
-import java.util.LinkedList;
-import java.util.Queue;
-
 import static gitlet.Utils.*;
 import static gitlet.Utils.readContentsAsString;
 
@@ -331,7 +328,7 @@ public class Repository {
         if (parentsOfHead.contains(c.id)) {
             return c;
         }
-        Commit resultP1 = findSplitHelper(c.parent, parentsOfHead) ;
+        Commit resultP1 = findSplitHelper(c.parent, parentsOfHead);
         Commit resultP2 = findSplitHelper(c.parent2, parentsOfHead);
         return resultP1 == null ? resultP2 : resultP1;
     }
@@ -367,8 +364,67 @@ public class Repository {
         content.append(readContentsAsString(join(BLOBS_DIR, given.fileToBlobs.get(filename))));
         content.append(">>>>>>>\n");
         File f = join(CWD, filename);
-        writeContents(f, content);
+        writeContents(f, content.toString());
         add(f);
+    }
+
+    private static boolean mergeHelper(
+            Commit split,
+            Commit head,
+            Commit other,
+            HashSet<String> files) {
+        boolean conflict = false;
+        for (String filename : files) {
+            boolean inSplit = inCommit(split, filename);
+            boolean inOther = inCommit(other, filename);
+            boolean inHead = inCommit(head, filename);
+            String splitBlob = inSplit ? split.fileToBlobs.get(filename) : "";
+            String headBlob = inHead ? head.fileToBlobs.get(filename) : "";
+            String otherBlob = inOther ? other.fileToBlobs.get(filename) : "";
+            if (headBlob.equals(otherBlob)) {
+                // Case 3: modified in the same way.
+                continue;
+            }
+            if (!inSplit) {
+                if (inHead && !inOther) {
+                    // Case 4: not present at the split point and are present only in the current branch
+                    continue;
+                }
+                if (!inHead) {
+                    // Case 5: not present at the split point and are present only in the given branch
+                    checkout(filename, other.id);
+                    add(join(CWD, filename));
+                }
+            } else {
+                if (inOther && inHead) {
+                    // Case 1: have been modified in the given branch since the split point,
+                    // but not modified in the current branch since the split point
+                    if (splitBlob.equals(headBlob)) {
+                        checkout(filename, other.id);
+                        add(join(CWD, filename));
+                    }
+                    // Case 2: have been modified in the current branch
+                    // but not in the given branch since the split point
+                }
+                if (splitBlob.equals(headBlob) && !inOther) {
+                    // Case 6: present at the split point,
+                    // unmodified in the current branch, and absent in the given branch
+                    rm(join(CWD, filename));
+                } else {
+                    if (!inHead && !splitBlob.equals(otherBlob)) {
+                        // Case 7: present at the split point,
+                        // unmodified in the given branch, and absent in the current branch
+                        continue;
+                    }
+                    // Case 8: modified in different ways in the current and given branches are in conflict
+                    if (inHead && inOther) {
+                        conflict = true;
+                        handleConflict(filename, head, other);
+                    }
+                }
+            }
+        }
+        return conflict;
     }
 
     public static void merge(String otherBranchName) {
@@ -409,57 +465,7 @@ public class Repository {
                         + "delete it, or add and commit it first.");
             }
         }
-
-        boolean conflict = false;
-        for (String filename : files) {
-            boolean inSplit = inCommit(split, filename);
-            boolean inOther = inCommit(other, filename);
-            boolean inHead = inCommit(head, filename);
-            String splitBlob = inSplit ? split.fileToBlobs.get(filename) : "";
-            String headBlob = inHead ? head.fileToBlobs.get(filename) : "";
-            String otherBlob = inOther ? other.fileToBlobs.get(filename) : "";
-            if (headBlob.equals(otherBlob)) {
-                // Case 3: modified in the same way.
-                continue;
-            }
-            if (!inSplit) {
-                if (inHead && !inOther) {
-                    // Case 4: not present at the split point and are present only in the current branch
-                    continue;
-                }
-                if (!inHead) {
-                    // Case 5: not present at the split point and are present only in the given branch
-                    checkout(filename, other.id);
-                    add(join(CWD, filename));
-                }
-            } else {
-                if (inOther && inHead) {
-                    // Case 1: have been modified in the given branch since the split point,
-                    // but not modified in the current branch since the split point
-                    if (splitBlob.equals(headBlob)) {
-                        checkout(filename, other.id);
-                        add(join(CWD, filename));
-                    }
-                    // Case 2: have been modified in the current branch
-                    // but not in the given branch since the split point
-                }
-                if (splitBlob.equals(headBlob) && !inOther) {
-                    // Case 6: present at the split point, unmodified in the current branch, and absent in the given branch
-                    rm(join(CWD, filename));
-                } else {
-                    if (!inHead && !splitBlob.equals(otherBlob)) {
-                        // Case 7: present at the split point, unmodified in the given branch, and absent in the current branch
-                        continue;
-                    }
-                    // Case 8: modified in different ways in the current and given branches are in conflict
-                    if (inHead && inOther) {
-                        handleConflict(filename, head, other);
-                    }
-                }
-            }
-
-        }
-
+        boolean conflict = mergeHelper(split, head, other, files);
         commit(
                 String.format("Merged %s into %s.",
                 otherBranchName,
