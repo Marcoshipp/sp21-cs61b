@@ -92,6 +92,9 @@ public class Repository {
 
     private static boolean sameInHeadCommit(File f) {
         Commit head = getCurHead();
+        if (!f.exists()) {
+            return false;
+        }
         if (!inCommit(head, f.getName())) {
             return false;
         }
