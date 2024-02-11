@@ -244,18 +244,21 @@ public class Repository {
         }
         for (String filename: activeFiles) {
             File f = join(CWD, filename);
-            if (isStaged(filename)) {
+            if (!isStaged(filename) && !removed.contains(filename)) {
                 if (!f.exists()) {
-                    System.out.println(filename + " (modified)");
-                } else if (inCommit(head, filename) && !sameInHeadCommit(f)) {
                     System.out.println(filename + " (deleted)");
+                } else if (inCommit(head, filename) && !sameInHeadCommit(f)) {
+                    System.out.println(filename + " (modified)");
                 }
             } else {
-                if (inCommit(head, filename) && !sameInHeadCommit(f)) {
+                if (!removed.contains(filename)
+                        && inCommit(head, filename)
+                        && !sameInHeadCommit(f)) {
                     System.out.println(filename + " (modified)");
                 }
             }
             if (!removed.contains(filename) && !f.exists()) {
+                System.out.println(removed);
                 System.out.println(filename + " (deleted)");
             }
         }
