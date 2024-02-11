@@ -386,12 +386,21 @@ public class Repository {
                 continue;
             }
             if (!inSplit) {
+                if (inHead && inOther) {
+                    // Case 8: modified in different ways in the current
+                    // and given branches are in conflict
+                    conflict = true;
+                    handleConflict(filename, head, other);
+                    continue;
+                }
                 if (inHead && !inOther) {
-                    // Case 4: not present at the split point and are present only in the current branch
+                    // Case 4: not present at the split point
+                    // and are present only in the current branch
                     continue;
                 }
                 if (!inHead) {
-                    // Case 5: not present at the split point and are present only in the given branch
+                    // Case 5: not present at the split point
+                    // and are present only in the given branch
                     checkout(filename, other.id);
                     add(join(CWD, filename));
                 }
@@ -408,15 +417,18 @@ public class Repository {
                 }
                 if (splitBlob.equals(headBlob) && !inOther) {
                     // Case 6: present at the split point,
-                    // unmodified in the current branch, and absent in the given branch
+                    // unmodified in the current branch,
+                    // and absent in the given branch
                     rm(join(CWD, filename));
                 } else {
                     if (!inHead && !splitBlob.equals(otherBlob)) {
                         // Case 7: present at the split point,
-                        // unmodified in the given branch, and absent in the current branch
+                        // unmodified in the given branch,
+                        // and absent in the current branch
                         continue;
                     }
-                    // Case 8: modified in different ways in the current and given branches are in conflict
+                    // Case 8: modified in different ways in the current
+                    // and given branches are in conflict
                     if (inHead && inOther) {
                         conflict = true;
                         handleConflict(filename, head, other);
@@ -456,7 +468,7 @@ public class Repository {
         if (!addTracker.isEmpty() || !delTracker.isEmpty()) {
             error("You have uncommitted changes.");
         }
-        for (String filename: head.fileToBlobs.keySet()) {
+        for (String filename: files) {
             File f = join(CWD, filename);
             if (f.exists()
                 && !sameInHeadCommit(f)
