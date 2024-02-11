@@ -57,9 +57,19 @@ public class Main {
                 if (args.length == 2) {
                     Repository.checkout(args[1]);
                 } else if (args.length == 3) {
+                    if (!args[1].equals("--")) {
+                        System.out.println("Incorrect operands.");
+                        return;
+                    }
                     Repository.checkout(args[2], getCurHead().id);
                 } else if (args.length == 4) {
+                    if (!args[2].equals("--")) {
+                        System.out.println("Incorrect operands.");
+                        return;
+                    }
                     Repository.checkout(args[3], args[1]);
+                } else {
+                    System.out.println("Incorrect operands.");
                 }
                 break;
             case "rm-branch":

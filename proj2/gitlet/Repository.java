@@ -314,7 +314,7 @@ public class Repository {
             error("No commit with that id exists.");
         }
         checkoutHelper(commitID);
-        writeContents(join(COMMITS_DIR, readContentsAsString(HEAD)), commitID);
+        writeContents(join(BRANCH_DIR, readContentsAsString(HEAD)), commitID);
     }
 
     private static Commit findSplit(Commit head, Commit other) {
