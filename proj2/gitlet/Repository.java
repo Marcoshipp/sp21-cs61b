@@ -318,39 +318,31 @@ public class Repository {
     }
 
     private static Commit findSplit(Commit head, Commit other) {
-        HashSet<String> set = new HashSet<>();
-        Queue<Commit> fringe = new LinkedList<>();
-        Commit splitPoint = null;
-        fringe.add(head);
-        while (!fringe.isEmpty()) {
-            Commit c = fringe.remove();
-            set.add(c.id);
-            // if c is not null
-            if (c.parent != null) {
-                fringe.add(c.parent);
-            }
-            // if is merge Node
-            if (c.merged) {
-                fringe.add(c.parent2);
-            }
+        // includes all parents of head.
+        HashSet<String> parentsOfHead = new HashSet<>();
+        findAllParents(head, parentsOfHead);
+        return findSplitHelper(other, parentsOfHead);
+    }
+
+    private static Commit findSplitHelper(Commit c, HashSet<String> parentsOfHead) {
+        if (c == null) {
+            return c;
         }
-        fringe.add(other);
-        while (!fringe.isEmpty()) {
-            Commit c = fringe.remove();
-            if (set.contains(c.id)) {
-                splitPoint = other;
-                break;
-            }
-            // if c is not null
-            if (c.parent != null) {
-                fringe.add(c.parent);
-            }
-            // if is merge Node
-            if (c.merged) {
-                fringe.add(c.parent2);
-            }
+        if (parentsOfHead.contains(c.id)) {
+            return c;
         }
-        return splitPoint;
+        Commit resultP1 = findSplitHelper(c.parent, parentsOfHead) ;
+        Commit resultP2 = findSplitHelper(c.parent2, parentsOfHead);
+        return resultP1 == null ? resultP2 : resultP1;
+    }
+
+    private static void findAllParents(Commit head, HashSet<String> set) {
+        if (head == null) {
+            return;
+        }
+        set.add(head.id);
+        findAllParents(head.parent, set);
+        findAllParents(head.parent2, set);
     }
 
     private static HashSet collectFiles(Commit head, Commit other, Commit split) {
@@ -386,8 +378,14 @@ public class Repository {
         if (otherBranchName.equals(readContentsAsString(HEAD))) {
             error("Cannot merge a branch with itself.");
         }
-        Commit head = readObject(join(BRANCH_DIR, readContentsAsString(HEAD)), Commit.class);
-        Commit other = readObject(join(BRANCH_DIR, otherBranchName), Commit.class);
+        File headFile = join(BRANCH_DIR, readContentsAsString(HEAD));
+        File otherFile = join(BRANCH_DIR, otherBranchName);
+        Commit head = readObject(
+                join(COMMITS_DIR, readContentsAsString(headFile)),
+                Commit.class);
+        Commit other = readObject(
+                join(COMMITS_DIR, readContentsAsString(otherFile)),
+                Commit.class);
         Commit split = findSplit(head, other);
         if (split.id.equals(other.id)) {
             error("Given branch is an ancestor of the current branch.");
@@ -411,39 +409,57 @@ public class Repository {
                         + "delete it, or add and commit it first.");
             }
         }
+
         boolean conflict = false;
-        for (String filename: files) {
+        for (String filename : files) {
             boolean inSplit = inCommit(split, filename);
             boolean inOther = inCommit(other, filename);
             boolean inHead = inCommit(head, filename);
             String splitBlob = inSplit ? split.fileToBlobs.get(filename) : "";
             String headBlob = inHead ? head.fileToBlobs.get(filename) : "";
             String otherBlob = inOther ? other.fileToBlobs.get(filename) : "";
-            // An empty string blob means the file DNE.
-            if (otherBlob.equals(headBlob)) {
+            if (headBlob.equals(otherBlob)) {
+                // Case 3: modified in the same way.
                 continue;
-            }
-            if (inOther && inHead) {
-                handleConflict(filename, head, other);
-                conflict = true;
-                continue;
-            }
-            if (!splitBlob.equals(headBlob) && splitBlob.equals(otherBlob)) {
-                continue;
-            }
-            if (splitBlob.equals(headBlob)) {
-                checkout(filename, other.id);
-                add(join(CWD, filename));
             }
             if (!inSplit) {
-                checkout(filename, other.id);
-                add(join(CWD, filename));
+                if (inHead && !inOther) {
+                    // Case 4: not present at the split point and are present only in the current branch
+                    continue;
+                }
+                if (!inHead) {
+                    // Case 5: not present at the split point and are present only in the given branch
+                    checkout(filename, other.id);
+                    add(join(CWD, filename));
+                }
             } else {
+                if (inOther && inHead) {
+                    // Case 1: have been modified in the given branch since the split point,
+                    // but not modified in the current branch since the split point
+                    if (splitBlob.equals(headBlob)) {
+                        checkout(filename, other.id);
+                        add(join(CWD, filename));
+                    }
+                    // Case 2: have been modified in the current branch
+                    // but not in the given branch since the split point
+                }
                 if (splitBlob.equals(headBlob) && !inOther) {
+                    // Case 6: present at the split point, unmodified in the current branch, and absent in the given branch
                     rm(join(CWD, filename));
+                } else {
+                    if (!inHead && !splitBlob.equals(otherBlob)) {
+                        // Case 7: present at the split point, unmodified in the given branch, and absent in the current branch
+                        continue;
+                    }
+                    // Case 8: modified in different ways in the current and given branches are in conflict
+                    if (inHead && inOther) {
+                        handleConflict(filename, head, other);
+                    }
                 }
             }
+
         }
+
         commit(
                 String.format("Merged %s into %s.",
                 otherBranchName,
