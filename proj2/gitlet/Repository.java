@@ -392,56 +392,43 @@ public class Repository {
             String splitBlob = inSplit ? split.fileToBlobs.get(filename) : "";
             String headBlob = inHead ? head.fileToBlobs.get(filename) : "";
             String otherBlob = inOther ? other.fileToBlobs.get(filename) : "";
-            if (headBlob.equals(otherBlob)) {
-                // Case 3: modified in the same way.
-                continue;
-            }
-            if (!inSplit) {
-                if (inHead && inOther) {
-                    // Case 8: modified in different ways in the current
-                    // and given branches are in conflict
+            // modified in both other and head
+            if (!splitBlob.equals(otherBlob) && !splitBlob.equals(headBlob)) {
+                if (otherBlob.equals(headBlob)) {
+                    // case 3: modified in the same way.
+                    continue;
+                } else {
+                    // case 3: modified in different ways.
                     conflict = true;
                     handleConflict(filename, head, other);
-                    continue;
                 }
-                if (inHead) {
-                    // Case 4: not present at the split point
-                    // and are present only in the current branch
-                    continue;
-                }
-                // Case 5: not present at the split point
-                // and are present only in the given branch
-                checkout(filename, other.id);
-                add(join(CWD, filename));
             } else {
-                if (inOther && inHead) {
-                    // Case 1: have been modified in the given branch since the split point,
-                    // but not modified in the current branch since the split point
-                    if (splitBlob.equals(headBlob)) {
+                if (!splitBlob.equals(otherBlob)) {
+                    // modified in other (could be removed or differnt in content)
+                    if (!inOther) {
+                        // if removed: case 6
+                        rm(join(CWD, filename));
+                    } else {
+                        // different in content: case 1
                         checkout(filename, other.id);
                         add(join(CWD, filename));
                     }
-                    // Case 2: have been modified in the current branch
-                    // but not in the given branch since the split point
+                    continue;
+                } else if (!splitBlob.equals(headBlob)) {
+                    // case 2 & 7:
+                    // modified in head: don't have to do anything
+                    continue;
                 }
-                if (splitBlob.equals(headBlob) && !inOther) {
-                    // Case 6: present at the split point,
-                    // unmodified in the current branch,
-                    // and absent in the given branch
-                    rm(join(CWD, filename));
-                } else {
-                    if (!inHead && splitBlob.equals(otherBlob)) {
-                        // Case 7: present at the split point,
-                        // unmodified in the given branch,
-                        // and absent in the current branch
-                        continue;
-                    }
-                    // Case 8: modified in different ways in the current
-                    // and given branches are in conflict
-                    if (inHead && inOther) {
-                        conflict = true;
-                        handleConflict(filename, head, other);
-                    }
+            }
+            if (!inSplit) {
+                if (!inOther && inHead) {
+                    // case 4
+                    continue;
+                }
+                if (!inHead && inOther) {
+                    // case 5.
+                    checkout(filename, other.id);
+                    add(join(CWD, filename));
                 }
             }
         }
