@@ -22,14 +22,19 @@ public class Commit implements Serializable {
     Map<String, String> blobToFiles;
     /** The id of this Commit. */
     String id;
-    /** The parent of the Commit */
+    /** The (1st) parent of the Commit */
     Commit parent;
+    /** The (2nd) parent of the Commit */
+    Commit parent2;
+    boolean merged;
 
     // initial commit
     public Commit() {
+        this.merged = false;
         this.timestamp = new Date(0); // the epoch date
         this.id = Utils.sha1(this.timestamp.toString());
         this.parent = null;
+        this.parent2 = null;
         this.message = "initial commit";
         this.fileToBlobs = new HashMap<>();
         this.blobToFiles = new HashMap<>();
@@ -39,21 +44,24 @@ public class Commit implements Serializable {
             String message,
             Set<String> toAdd,
             Set<String> toDelete,
-            Commit parent
+            Commit parent1,
+            Commit parent2
     ) {
+        this.merged = (parent2 != null);
         this.timestamp = new Date();
         this.id = Utils.sha1(this.timestamp.toString(), message, toAdd.toString(), toDelete.toString());
         this.message = message;
         this.fileToBlobs = new HashMap<>();
         this.blobToFiles = new HashMap<>();
-        this.parent = parent;
-        for (String s: parent.fileToBlobs.keySet()) {
-            fileToBlobs.put(s, parent.fileToBlobs.get(s));
+        this.parent = parent1;
+        this.parent2 = parent2;
+        for (String s: parent1.fileToBlobs.keySet()) {
+            fileToBlobs.put(s, parent1.fileToBlobs.get(s));
         }
-        for (String s: parent.blobToFiles.keySet()) {
-            blobToFiles.put(s, parent.blobToFiles.get(s));
+        for (String s: parent1.blobToFiles.keySet()) {
+            blobToFiles.put(s, parent1.blobToFiles.get(s));
         }
-        // overwrites inheritance from parent pointer
+        // overwrites parent1's content
         for (String filename: toAdd) {
             File f = join(STAGING_DIR, filename);
             String fileContent = readContentsAsString(f);
@@ -69,4 +77,5 @@ public class Commit implements Serializable {
             this.blobToFiles.remove(blobName);
         }
     }
+
 }
