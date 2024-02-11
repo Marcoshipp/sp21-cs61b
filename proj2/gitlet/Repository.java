@@ -264,7 +264,9 @@ public class Repository {
     private static void checkoutHelper(String commitID) {
         Commit c = readObject(join(COMMITS_DIR, commitID), Commit.class);
         for (String filename: c.fileToBlobs.keySet()) {
-            if (join(CWD, filename).exists() && !inCommit(c, filename) && !isStaged(filename)) {
+            if (join(CWD, filename).exists()
+                    && !inCommit(c, filename)
+                    && !isStaged(filename)) {
                 error("There is an untracked file in the way;"
                        + " delete it, or add and commit it first.");
             }
@@ -400,7 +402,9 @@ public class Repository {
             error("You have uncommitted changes.");
         }
         for (String filename: head.fileToBlobs.keySet()) {
-            if (join(CWD, filename).exists() && !inCommit(head, filename) && !isStaged(filename)) {
+            if (join(CWD, filename).exists()
+                    && !inCommit(head, filename)
+                    && !isStaged(filename)) {
                 error("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
             }
