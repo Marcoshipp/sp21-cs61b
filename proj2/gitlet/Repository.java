@@ -231,7 +231,7 @@ public class Repository {
         }
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
-        HashSet<String> activeFiles = new HashSet<>();
+        TreeSet<String> activeFiles = new TreeSet<>();
         Commit head = getCurHead();
         activeFiles.addAll(head.fileToBlobs.keySet());
         for (File f: CWD.listFiles()) {
@@ -240,19 +240,20 @@ public class Repository {
             }
         }
         for (String filename: activeFiles) {
-            if (!join(CWD, filename).exists()
-                    && inCommit(head, filename)
-                    && !removed.contains(filename)) {
+            File f = join(CWD, filename);
+            if (isStaged(filename)) {
+                if (!f.exists()) {
+                    System.out.println(filename + " (modified)");
+                } else if (inCommit(head, filename) && !sameInHeadCommit(f)) {
+                    System.out.println(filename + " (deleted)");
+                }
+            } else {
+                if (inCommit(head, filename) && !sameInHeadCommit(f)) {
+                    System.out.println(filename + " (modified)");
+                }
+            }
+            if (!removed.contains(filename) && !f.exists()) {
                 System.out.println(filename + " (deleted)");
-            } else if (isStaged(filename)
-                    && !join(CWD, filename).exists()) {
-                System.out.println(filename + " (deleted)");
-            } else if (isStaged(filename)
-                    && !sameInHeadCommit(join(CWD, filename))) {
-                System.out.println(filename + " (modified)");
-            } else if (inCommit(head, filename)
-                    && !sameInHeadCommit(join(CWD, filename))) {
-                System.out.println(filename + " (modified)");
             }
         }
         System.out.println();
@@ -260,7 +261,9 @@ public class Repository {
         for (File f: CWD.listFiles()) {
             if (f.isFile()) {
                 String filename = f.getName();
-                if (!sameInHeadCommit(f) && !isStaged(filename)) {
+                if (!isStaged(filename)
+                    && !removed.contains(filename)
+                    && !inCommit(head, filename)) {
                     System.out.println(filename);
                 }
             }
