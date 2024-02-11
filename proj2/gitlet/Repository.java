@@ -36,7 +36,8 @@ public class Repository {
 
     public static void init() {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system "
+                    + "already exists in the current directory.");
             return;
         }
         initDirs();
@@ -98,7 +99,7 @@ public class Repository {
             return false;
         }
         String filename = f.getName();
-        String hashVal = sha1(filename, readContents(f));
+        String hashVal = sha1(filename, readContentsAsString(f));
         return head.fileToBlobs.get(filename).equals(hashVal);
     }
 
@@ -106,10 +107,15 @@ public class Repository {
         if (!f.exists()) {
             error("File does not exist.");
         }
+        HashSet<String> delTracker = readObject(DEL_TRACKER_DIR, HashSet.class);
         File copy = join(STAGING_DIR, f.getName());
         if (sameInHeadCommit(f)) {
             if (copy.exists()) {
                 copy.delete();
+            }
+            if (delTracker.contains(f.getName())) {
+                delTracker.remove(f.getName());
+                writeObject(DEL_TRACKER_DIR, delTracker);
             }
             return;
         }
@@ -167,7 +173,9 @@ public class Repository {
         System.out.println("===");
         System.out.printf("commit %s\n", c.id);
         if (c.merged) {
-            System.out.printf("Merge: %s %s\n", c.parent.id.substring(0, 7), c.parent2.id.substring(0, 7));
+            System.out.printf("Merge: %s %s\n",
+                    c.parent.id.substring(0, 7),
+                    c.parent2.id.substring(0, 7));
         }
         Formatter formatter = new Formatter();
         formatter.format("Date: %1$ta %1$tb %1$td %1$tT %1$tY %1$tz%n", c.timestamp);
@@ -184,8 +192,9 @@ public class Repository {
     }
 
     public static void globalLog() {
-        for (String filename: plainFilenamesIn(COMMITS_DIR)) {
-            printCommit(readObject(join(COMMITS_DIR, filename), Commit.class));
+        for (File f: COMMITS_DIR.listFiles()) {
+            Commit c = readObject(f, Commit.class);
+            printCommit(c);
         }
     }
 
@@ -248,14 +257,16 @@ public class Repository {
             error("File does not exist in that commit.");
         }
         String blobName = commit.fileToBlobs.get(filename);
-        writeContents(join(CWD, filename), readContentsAsString(join(BLOBS_DIR, blobName)));
+        writeContents(join(CWD, filename),
+                readContentsAsString(join(BLOBS_DIR, blobName)));
     }
 
     private static void checkoutHelper(String commitID) {
         Commit c = readObject(join(COMMITS_DIR, commitID), Commit.class);
         for (String filename: c.fileToBlobs.keySet()) {
-            if (!inCommit(getCurHead(), filename)) {
-                error("There is an untracked file in the way; delete it, or add and commit it first.");
+            if (join(CWD, filename).exists() && !inCommit(c, filename) && !isStaged(filename)) {
+                error("There is an untracked file in the way;"
+                       + " delete it, or add and commit it first.");
             }
         }
         for (String filename: c.fileToBlobs.keySet()) {
@@ -389,8 +400,9 @@ public class Repository {
             error("You have uncommitted changes.");
         }
         for (String filename: head.fileToBlobs.keySet()) {
-            if (!inCommit(getCurHead(), filename)) {
-                error("There is an untracked file in the way; delete it, or add and commit it first.");
+            if (join(CWD, filename).exists() && !inCommit(head, filename) && !isStaged(filename)) {
+                error("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
             }
         }
         boolean conflict = false;
@@ -398,9 +410,9 @@ public class Repository {
             boolean inSplit = inCommit(split, filename);
             boolean inOther = inCommit(other, filename);
             boolean inHead = inCommit(head, filename);
-            String splitBlob = inSplit? split.fileToBlobs.get(filename): "";
-            String headBlob = inHead? head.fileToBlobs.get(filename): "";
-            String otherBlob = inOther? other.fileToBlobs.get(filename): "";
+            String splitBlob = inSplit ? split.fileToBlobs.get(filename) : "";
+            String headBlob = inHead ? head.fileToBlobs.get(filename) : "";
+            String otherBlob = inOther ? other.fileToBlobs.get(filename) : "";
             // An empty string blob means the file DNE.
             if (otherBlob.equals(headBlob)) {
                 continue;
@@ -426,7 +438,12 @@ public class Repository {
                 }
             }
         }
-        commit(String.format("Merged %s into %s.", otherBranchName, readContentsAsString(HEAD)), other);
+        commit(
+                String.format("Merged %s into %s.",
+                otherBranchName,
+                readContentsAsString(HEAD)),
+                other
+        );
         if (conflict) {
             System.out.println("Encountered a merge conflict.");
         }
