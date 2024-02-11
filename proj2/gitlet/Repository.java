@@ -356,12 +356,37 @@ public class Repository {
         return files;
     }
 
+    private static HashSet collectFiles(Commit head, Commit other) {
+        HashSet<String> files = new HashSet<>();
+        for (String name: head.fileToBlobs.keySet()) {
+            files.add(name);
+        }
+        for (String name: other.fileToBlobs.keySet()) {
+            files.add(name);
+        }
+        return files;
+    }
+
     private static void handleConflict(String filename, Commit current, Commit given) {
         StringBuilder content = new StringBuilder();
         content.append("<<<<<<< HEAD\n");
-        content.append(readContentsAsString(join(BLOBS_DIR, current.fileToBlobs.get(filename))));
+        String headContent = current.fileToBlobs.containsKey(filename)
+                                ? ""
+                                : readContentsAsString(
+                                        join(
+                                                BLOBS_DIR,
+                                                current.fileToBlobs.get(filename)
+                                        ));
+        content.append(headContent);
         content.append("=======\n");
-        content.append(readContentsAsString(join(BLOBS_DIR, given.fileToBlobs.get(filename))));
+        String givenContent = given.fileToBlobs.containsKey(filename)
+                ? ""
+                : readContentsAsString(
+                join(
+                        BLOBS_DIR,
+                        given.fileToBlobs.get(filename)
+                ));
+        content.append(givenContent);
         content.append(">>>>>>>\n");
         File f = join(CWD, filename);
         writeContents(f, content.toString());
@@ -393,17 +418,15 @@ public class Repository {
                     handleConflict(filename, head, other);
                     continue;
                 }
-                if (inHead && !inOther) {
+                if (inHead) {
                     // Case 4: not present at the split point
                     // and are present only in the current branch
                     continue;
                 }
-                if (!inHead) {
-                    // Case 5: not present at the split point
-                    // and are present only in the given branch
-                    checkout(filename, other.id);
-                    add(join(CWD, filename));
-                }
+                // Case 5: not present at the split point
+                // and are present only in the given branch
+                checkout(filename, other.id);
+                add(join(CWD, filename));
             } else {
                 if (inOther && inHead) {
                     // Case 1: have been modified in the given branch since the split point,
@@ -421,7 +444,7 @@ public class Repository {
                     // and absent in the given branch
                     rm(join(CWD, filename));
                 } else {
-                    if (!inHead && !splitBlob.equals(otherBlob)) {
+                    if (!inHead && splitBlob.equals(otherBlob)) {
                         // Case 7: present at the split point,
                         // unmodified in the given branch,
                         // and absent in the current branch
@@ -463,12 +486,13 @@ public class Repository {
             error("Current branch fast-forwarded.");
         }
         HashSet<String> files = collectFiles(head, other, split);
+        HashSet<String> activeFiles = collectFiles(head, other);
         HashSet<String> addTracker = readObject(ADD_TRACKER_DIR, HashSet.class);
         HashSet<String> delTracker = readObject(DEL_TRACKER_DIR, HashSet.class);
         if (!addTracker.isEmpty() || !delTracker.isEmpty()) {
             error("You have uncommitted changes.");
         }
-        for (String filename: files) {
+        for (String filename: activeFiles) {
             File f = join(CWD, filename);
             if (f.exists()
                 && !sameInHeadCommit(f)
