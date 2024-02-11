@@ -1,8 +1,8 @@
 package gitlet;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Formatter;
+import java.util.*;
+
 import static gitlet.Utils.*;
 import static gitlet.Utils.readContentsAsString;
 
@@ -231,8 +231,40 @@ public class Repository {
         }
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
+        HashSet<String> activeFiles = new HashSet<>();
+        Commit head = getCurHead();
+        activeFiles.addAll(head.fileToBlobs.keySet());
+        for (File f: CWD.listFiles()) {
+            if (f.isFile()) {
+                activeFiles.add(f.getName());
+            }
+        }
+        for (String filename: activeFiles) {
+            if (!join(CWD, filename).exists()
+                    && inCommit(head, filename)
+                    && !removed.contains(filename)) {
+                System.out.println(filename + " (deleted)");
+            } else if (isStaged(filename)
+                    && !join(CWD, filename).exists()) {
+                System.out.println(filename + " (deleted)");
+            } else if (isStaged(filename)
+                    && !sameInHeadCommit(join(CWD, filename))) {
+                System.out.println(filename + " (modified)");
+            } else if (inCommit(head, filename)
+                    && !sameInHeadCommit(join(CWD, filename))) {
+                System.out.println(filename + " (modified)");
+            }
+        }
         System.out.println();
         System.out.println("=== Untracked Files ===");
+        for (File f: CWD.listFiles()) {
+            if (f.isFile()) {
+                String filename = f.getName();
+                if (!sameInHeadCommit(f) && !isStaged(filename)) {
+                    System.out.println(filename);
+                }
+            }
+        }
         System.out.println();
     }
 

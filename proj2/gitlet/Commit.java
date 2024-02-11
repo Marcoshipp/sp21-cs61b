@@ -18,14 +18,13 @@ public class Commit implements Serializable {
     Date timestamp;
     /** The files I tracked in this Commit. */
     Map<String, String> fileToBlobs;
-    /** A mapping from blobs to their filenames */
-    Map<String, String> blobToFiles;
     /** The id of this Commit. */
     String id;
     /** The (1st) parent of the Commit */
     Commit parent;
     /** The (2nd) parent of the Commit */
     Commit parent2;
+    /** Whether the commit node is a merge node */
     boolean merged;
 
     // initial commit
@@ -37,7 +36,6 @@ public class Commit implements Serializable {
         this.parent2 = null;
         this.message = "initial commit";
         this.fileToBlobs = new HashMap<>();
-        this.blobToFiles = new HashMap<>();
     }
 
     public Commit(
@@ -57,14 +55,10 @@ public class Commit implements Serializable {
         );
         this.message = message;
         this.fileToBlobs = new HashMap<>();
-        this.blobToFiles = new HashMap<>();
         this.parent = parent1;
         this.parent2 = parent2;
         for (String s: parent1.fileToBlobs.keySet()) {
             fileToBlobs.put(s, parent1.fileToBlobs.get(s));
-        }
-        for (String s: parent1.blobToFiles.keySet()) {
-            blobToFiles.put(s, parent1.blobToFiles.get(s));
         }
         // overwrites parent1's content
         for (String filename: toAdd) {
@@ -74,12 +68,9 @@ public class Commit implements Serializable {
             File blob = join(BLOBS_DIR, sha1Hash);
             writeContents(blob, fileContent);
             this.fileToBlobs.put(filename, sha1Hash);
-            this.blobToFiles.put(sha1Hash, filename);
         }
         for (String filename: toDelete) {
-            String blobName = this.fileToBlobs.get(filename);
             this.fileToBlobs.remove(filename);
-            this.blobToFiles.remove(blobName);
         }
     }
 
