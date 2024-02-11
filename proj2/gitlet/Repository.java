@@ -277,6 +277,7 @@ public class Repository {
                 join(CWD, filename).delete();
             }
         }
+        clearStaged();
     }
 
     public static void checkout(String branchName) {
@@ -291,7 +292,6 @@ public class Repository {
         checkoutHelper(commitID);
         // make head point to the given branch
         writeContents(HEAD, branchName);
-        clearStaged();
     }
 
     public static void rmBranch(String branchName) {
