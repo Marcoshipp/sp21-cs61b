@@ -245,7 +245,14 @@ public class Repository {
     }
 
     public static void checkout(String filename, String commitID) {
-        File commitFile = join(COMMITS_DIR, commitID);
+        String realCommitId = commitID;
+        for (File f: COMMITS_DIR.listFiles()) {
+            String commit = f.getName();
+            if (commit.startsWith(realCommitId)) {
+                realCommitId = commit;
+            }
+        }
+        File commitFile = join(COMMITS_DIR, realCommitId);
         if (!commitFile.exists()) {
             error("No commit with that id exists.");
         }
@@ -306,7 +313,14 @@ public class Repository {
     }
 
     public static void reset(String commitID) {
-        File commit = join(COMMITS_DIR, commitID);
+        String realCommitId = commitID;
+        for (File f: COMMITS_DIR.listFiles()) {
+            String commit = f.getName();
+            if (commit.startsWith(realCommitId)) {
+                realCommitId = commit;
+            }
+        }
+        File commit = join(COMMITS_DIR, realCommitId);
         if (!commit.exists()) {
             error("No commit with that id exists.");
         }
